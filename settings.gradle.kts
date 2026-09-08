@@ -20,10 +20,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         mavenLocal()
-        // BindJS is consumed as a published GitHub Packages artifact and kept in its
-        // own repo (bindjs-android / bindjs-android-binary), exactly like bindjs-apple-binary.
+        // BindJS releases are published from their public source repository.
         maven {
-            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android-binary")
+            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android")
             credentials {
                 username = providers.gradleProperty("gpr.user").orElse(providers.environmentVariable("GITHUB_ACTOR")).get()
                 password = providers.gradleProperty("gpr.key").orElse(providers.environmentVariable("GITHUB_TOKEN")).get()

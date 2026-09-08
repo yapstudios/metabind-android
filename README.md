@@ -49,7 +49,9 @@ The full guides live on [docs.metabind.ai](https://docs.metabind.ai):
 
 ## Installation
 
-All Metabind libraries — and their BindJS dependency — are published to GitHub Packages, which requires authentication to resolve. Provide credentials via environment variables:
+All Metabind libraries — and their BindJS dependency — are published to GitHub Packages, which requires authentication even for public packages. Use a personal access token
+(classic) with `read:packages`, or a GitHub Actions `GITHUB_TOKEN` with package read
+access. Repository access alone does not grant package access. Provide credentials via environment variables:
 
 ```bash
 export GITHUB_ACTOR=<your-github-username>
@@ -63,7 +65,12 @@ gpr.user=<your-github-username>
 gpr.key=<your-github-token>
 ```
 
-Add the repository in your `settings.gradle.kts`:
+The next releases are prepared for publishing from their public source
+repositories: BindJS `0.0.31` from `bindjs-android`, and SDK `0.2.10` from
+`metabind-android`. **The registry migration has not happened yet.** See the
+[proposed migration guide](docs/PACKAGE_MIGRATION.md) before switching an
+existing project. After the cutover, configure both repositories in your
+`settings.gradle.kts`:
 
 ```kotlin
 dependencyResolutionManagement {
@@ -71,7 +78,15 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android-binary")
+            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android")
+            content { includeModule("ai.metabind", "bindjs-android") }
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            url = uri("https://maven.pkg.github.com/metabindai/metabind-android")
             credentials {
                 username = providers.gradleProperty("gpr.user").orElse(providers.environmentVariable("GITHUB_ACTOR")).get()
                 password = providers.gradleProperty("gpr.key").orElse(providers.environmentVariable("GITHUB_TOKEN")).get()
@@ -85,9 +100,9 @@ Then add the libraries you need to your module's `build.gradle.kts`. All three s
 
 ```kotlin
 dependencies {
-    implementation("ai.metabind:metabindai-android:0.2.9")        // embed the agent
-    implementation("ai.metabind:mcpappshost-android:0.2.9")       // low-level rendering
-    implementation("ai.metabind:metabind-content-android:0.2.9")  // content SDK
+    implementation("ai.metabind:metabindai-android:0.2.10")        // embed the agent
+    implementation("ai.metabind:mcpappshost-android:0.2.10")       // low-level rendering
+    implementation("ai.metabind:metabind-content-android:0.2.10")  // content SDK
 }
 ```
 

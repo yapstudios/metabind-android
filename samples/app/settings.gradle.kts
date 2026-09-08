@@ -21,8 +21,18 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         // Use Github packages
+        // BindJS releases from the public source repository.
         maven {
-            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android-binary")
+            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android")
+            content { includeModule("ai.metabind", "bindjs-android") }
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+        // Metabind SDK releases from their public source repository.
+        maven {
+            url = uri("https://maven.pkg.github.com/metabindai/metabind-android")
             credentials {
                 username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
                 password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
