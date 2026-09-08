@@ -66,7 +66,8 @@ class MetabindAgentProvider {
         apiKey: String,
         orgId: String,
         projectId: String,
-        messages: List<LLMMessage>
+        messages: List<LLMMessage>,
+        draft: Boolean = false,
     ): Flow<LLMStreamEvent> = callbackFlow {
         try {
             val url = "$baseUrl/$orgId/$projectId/chat"
@@ -77,6 +78,7 @@ class MetabindAgentProvider {
                 "messages" to scopedMessages,
                 "stream" to JsonPrimitive(true)
             )
+            if (draft) bodyMap["draft"] = JsonPrimitive(true)
             conversationId?.let {
                 bodyMap["conversationId"] = JsonPrimitive(it)
             }

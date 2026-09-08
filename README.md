@@ -220,3 +220,22 @@ GraphQL schema and operations for the content module live in
 ## License
 
 Apache License 2.0. See [`LICENSE`](LICENSE).
+
+
+## Saved-draft assistant previews
+
+Pass `draft = true` to `MetabindAssistant` to use the MCP draft endpoint and request
+saved draft configuration from the Agent service. The default remains published
+mode. Preview hosts can call `awaitReady()` before showing chat to validate MCP
+access without sending a message or executing a tool.
+
+Call `refreshPreviewResources()` from a lifecycle-aware coroutine while the host
+is resumed (the preview sample uses a three-second interval). It refreshes tool
+definitions and existing UI resources between turns while preserving messages,
+tool arguments, results, and the conversation. Identical resources do not recreate
+cards, and an intervening turn or reset discards stale refresh results. Refresh
+never replays tool calls. `close()` releases the assistant when its host is removed.
+
+The `samples/app` preview host supports importing scoped access from a QR or URL,
+secure local credential storage, and reopening saved projects. See its README
+for the link format and local test workflow.

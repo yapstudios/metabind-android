@@ -1,5 +1,11 @@
 package ai.metabind.feature.detail.screens
 
+import ai.metabind.ai.MetabindAssistant
+import ai.metabind.ai.MetabindAgentProvider
+import ai.metabind.data.home.preview.MCPPreviewLink
+import ai.metabind.data.home.preview.PreviewCredentials
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.withContext
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,6 +26,7 @@ import javax.inject.Inject
 class DetailViewModel @Inject constructor(
     savedState: SavedStateHandle,
     private val itemRepository: RecentsRepository,
+    private val credentials: PreviewCredentials,
     private val navigationConductor: NavigationConductor,
 ) : ViewModel(),
     AnalyticsDelegate by AnalyticsDelegateImpl(
@@ -30,11 +37,47 @@ class DetailViewModel @Inject constructor(
         savedState
     ) {
 
+    var assistant: MetabindAssistant? = null
+        private set
+    private var currentItem: Long? = null
+
     fun initialize(itemId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
-            val item = itemRepository.getById(itemId) ?: return@launch
-            updateState(ViewState.Success(contentId = item.token))
+        if (currentItem == itemId && viewState.value !is ViewState.Error) return
+        currentItem = itemId
+        updateState(ViewState.Loading)
+        viewModelScope.launch {
+            try {
+                val item = withContext(Dispatchers.IO) { itemRepository.getById(itemId) }
+                    ?: error("Missing preview")
+                val project = MCPPreviewLink.parse(item.url)
+                if (project == null) {
+                    updateState(ViewState.Success(contentId = item.token))
+                } else {
+                    val key = withContext(Dispatchers.IO) { credentials.load(project) }
+                        ?: error("Missing project access")
+                    assistant?.close()
+                    val chat = MetabindAssistant(apiKey = key, orgId = project.organizationId,
+                        projectId = project.projectId, mcpHost = project.mcpHost, draft = true,
+                        agentHost = if (project.isDevelopment) MetabindAgentProvider.DEVELOPMENT_HOST else MetabindAgentProvider.PRODUCTION_HOST)
+                    assistant = chat
+                    chat.awaitReady()
+                    updateState(ViewState.Project(item.name ?: project.title, project.isDevelopment))
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                assistant?.close()
+                assistant = null
+                updateState(ViewState.Error)
+            }
         }
+    }
+
+    fun retry() { currentItem?.let(::initialize) }
+
+    override fun onCleared() {
+        assistant?.close()
+        super.onCleared()
     }
 
     fun onBackPressed() {
@@ -43,6 +86,8 @@ class DetailViewModel @Inject constructor(
 
     sealed class ViewState : Serializable {
         object Loading : ViewState()
+        object Error : ViewState()
+        data class Project(val title: String, val development: Boolean) : ViewState()
         data class Success(
             val contentId: String,
         ) : ViewState()

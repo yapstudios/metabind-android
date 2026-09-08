@@ -47,5 +47,7 @@ include(":dynamicfeature")
 includeBuild("../..") {
     dependencySubstitution {
         substitute(module("ai.metabind:metabind-content-android")).using(project(":metabind-content"))
+        substitute(module("ai.metabind:metabindai-android")).using(project(":metabindai"))
+        substitute(module("ai.metabind:mcpappshost-android")).using(project(":mcpappshost"))
     }
 }

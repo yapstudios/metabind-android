@@ -2,6 +2,19 @@
 
 package ai.metabind.feature.detail.screens
 
+import ai.metabind.ai.MetabindAssistant
+import ai.metabind.ai.MetabindAssistantView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -40,6 +53,8 @@ fun DetailScreen(
     DetailContent(
         viewState = viewState,
         onClose = { viewModel.onBackPressed() },
+        assistant = viewModel.assistant,
+        onRetry = viewModel::retry,
     )
 }
 
@@ -47,6 +62,8 @@ fun DetailScreen(
 fun DetailContent(
     viewState: DetailViewModel.ViewState,
     onClose: () -> Unit,
+    assistant: MetabindAssistant? = null,
+    onRetry: () -> Unit = {},
 ) {
     Box(
         modifier = Modifier
@@ -56,6 +73,11 @@ fun DetailContent(
             when (viewState) {
                 is DetailViewModel.ViewState.Loading -> LoadingState()
                 is DetailViewModel.ViewState.Success -> LoadedState(contentId = viewState.contentId)
+                is DetailViewModel.ViewState.Project -> assistant?.let { ProjectContent(it, viewState) }
+                is DetailViewModel.ViewState.Error -> Column(Modifier.padding(32.dp)) {
+                    Text("Unable to open preview. Check your connection and project access, or import a new preview QR.")
+                    TextButton(onClick = onRetry) { Text("Retry") }
+                }
             }
         }
         IconButton(
@@ -72,7 +94,7 @@ fun DetailContent(
                 disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
             )
         ) {
-            Icon(Icons.Default.Close, null)
+            Icon(Icons.Default.Close, "Close Preview")
         }
     }
 }
@@ -89,4 +111,34 @@ private fun BoxScope.LoadingState() {
             .width(32.dp)
             .align(Alignment.Center),
     )
+}
+
+
+@Composable
+private fun ProjectContent(assistant: MetabindAssistant, project: DetailViewModel.ViewState.Project) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    var refreshUnavailable by remember(assistant) { mutableStateOf(false) }
+    LaunchedEffect(assistant, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            while (true) {
+                delay(3_000)
+                try {
+                    assistant.refreshPreviewResources()
+                    refreshUnavailable = false
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: Exception) {
+                    refreshUnavailable = true
+                }
+            }
+        }
+    }
+    Column(Modifier.fillMaxSize().systemBarsPadding()) {
+        Column(Modifier.fillMaxWidth().padding(start = 56.dp, end = 16.dp, top = 8.dp, bottom = 8.dp)) {
+            Text(project.title, style = MaterialTheme.typography.titleMedium)
+            Text("Saved drafts · ${if (project.development) "Development" else "Production"}", style = MaterialTheme.typography.labelSmall)
+        }
+        if (refreshUnavailable) Text("Saved edit refresh is temporarily unavailable.", Modifier.padding(horizontal = 16.dp), style = MaterialTheme.typography.labelSmall)
+        MetabindAssistantView(assistant, Modifier.weight(1f))
+    }
 }

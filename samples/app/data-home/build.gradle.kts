@@ -8,6 +8,7 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit)
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.gson)
