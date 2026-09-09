@@ -49,7 +49,9 @@ The full guides live on [docs.metabind.ai](https://docs.metabind.ai):
 
 ## Installation
 
-All Metabind libraries — and their BindJS dependency — are published to GitHub Packages, which requires authentication to resolve. Provide credentials via environment variables:
+All Metabind libraries — and their BindJS dependency — are published to GitHub Packages, which requires authentication even for public packages. Use a personal access token
+(classic) with `read:packages`, or a GitHub Actions `GITHUB_TOKEN` with package read
+access. Repository access alone does not grant package access. Provide credentials via environment variables:
 
 ```bash
 export GITHUB_ACTOR=<your-github-username>
@@ -63,7 +65,12 @@ gpr.user=<your-github-username>
 gpr.key=<your-github-token>
 ```
 
-Add the repository in your `settings.gradle.kts`:
+The next releases are prepared for publishing from their public source
+repositories: BindJS `0.0.31` from `bindjs-android`, and SDK `0.2.10` from
+`metabind-android`. **The registry migration has not happened yet.** See the
+[proposed migration guide](docs/PACKAGE_MIGRATION.md) before switching an
+existing project. After the cutover, configure both repositories in your
+`settings.gradle.kts`:
 
 ```kotlin
 dependencyResolutionManagement {
@@ -71,7 +78,15 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android-binary")
+            url = uri("https://maven.pkg.github.com/metabindai/bindjs-android")
+            content { includeModule("ai.metabind", "bindjs-android") }
+            credentials {
+                username = providers.gradleProperty("gpr.user").orNull ?: System.getenv("GITHUB_ACTOR")
+                password = providers.gradleProperty("gpr.key").orNull ?: System.getenv("GITHUB_TOKEN")
+            }
+        }
+        maven {
+            url = uri("https://maven.pkg.github.com/metabindai/metabind-android")
             credentials {
                 username = providers.gradleProperty("gpr.user").orElse(providers.environmentVariable("GITHUB_ACTOR")).get()
                 password = providers.gradleProperty("gpr.key").orElse(providers.environmentVariable("GITHUB_TOKEN")).get()
@@ -220,3 +235,22 @@ GraphQL schema and operations for the content module live in
 ## License
 
 Apache License 2.0. See [`LICENSE`](LICENSE).
+
+
+## Saved-draft assistant previews
+
+Pass `draft = true` to `MetabindAssistant` to use the MCP draft endpoint and request
+saved draft configuration from the Agent service. The default remains published
+mode. Preview hosts can call `awaitReady()` before showing chat to validate MCP
+access without sending a message or executing a tool.
+
+Call `refreshPreviewResources()` from a lifecycle-aware coroutine while the host
+is resumed (the preview sample uses a three-second interval). It refreshes tool
+definitions and existing UI resources between turns while preserving messages,
+tool arguments, results, and the conversation. Identical resources do not recreate
+cards, and an intervening turn or reset discards stale refresh results. Refresh
+never replays tool calls. `close()` releases the assistant when its host is removed.
+
+The `samples/app` preview host supports importing scoped access from a QR or URL,
+secure local credential storage, and reopening saved projects. See its README
+for the link format and local test workflow.

@@ -103,6 +103,11 @@ android {
     dynamicFeatures += setOf(":dynamicfeature")
 }
 
+// Match the assistant samples: BindJS/Markwon and chat share the newer CommonMark.
+configurations.all {
+    exclude(group = "com.atlassian.commonmark", module = "commonmark")
+}
+
 dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material)
@@ -123,6 +128,8 @@ dependencies {
     ksp(libs.androidx.hilt.compiler)
     implementation(libs.timber)
     testImplementation(libs.junit)
+    androidTestImplementation("androidx.compose.ui:ui-test-junit4:1.10.4")
+    androidTestImplementation(project(":data-home"))
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso.core)
 
