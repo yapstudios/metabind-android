@@ -85,9 +85,9 @@ Then add the libraries you need to your module's `build.gradle.kts`. All three s
 
 ```kotlin
 dependencies {
-    implementation("ai.metabind:metabindai-android:0.2.9")        // embed the agent
-    implementation("ai.metabind:mcpappshost-android:0.2.9")       // low-level rendering
-    implementation("ai.metabind:metabind-content-android:0.2.9")  // content SDK
+    implementation("ai.metabind:metabindai-android:0.2.10")        // embed the agent
+    implementation("ai.metabind:mcpappshost-android:0.2.10")       // low-level rendering
+    implementation("ai.metabind:metabind-content-android:0.2.10")  // content SDK
 }
 ```
 
